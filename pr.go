@@ -9,6 +9,8 @@ import (
 	"github.com/muesli/reflow/truncate"
 )
 
+// TODO: add TUI to browse through PRs/issues
+
 func printPullRequest(pr vcs.PullRequest, maxWidth int) {
 	genericStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color(theme.colorGray))
@@ -31,6 +33,7 @@ func printPullRequest(pr vcs.PullRequest, maxWidth int) {
 	fmt.Println(s)
 }
 
+// TODO: make this a navigatable list
 func printPullRequests(prs []vcs.PullRequest) {
 	headerStyle := lipgloss.NewStyle().
 		PaddingTop(1).

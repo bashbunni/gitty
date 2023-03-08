@@ -3,13 +3,14 @@ package main
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/muesli/gitty/vcs"
 	"github.com/muesli/reflow/truncate"
 )
 
-func printIssue(issue vcs.Issue, maxWidth int) {
+func printIssue(issue vcs.Issue, maxWidth int) string {
 	genericStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color(theme.colorGray))
 	numberStyle := lipgloss.NewStyle().
@@ -28,15 +29,16 @@ func printIssue(issue vcs.Issue, maxWidth int) {
 	s += genericStyle.Render(" ")
 	s += issue.Labels.View()
 
-	fmt.Println(s)
+	return s
 }
 
-func printIssues(issues []vcs.Issue) {
+func printIssues(issues []vcs.Issue) string {
+	var s strings.Builder
 	headerStyle := lipgloss.NewStyle().
 		PaddingTop(1).
 		Foreground(lipgloss.Color(theme.colorMagenta))
 
-	fmt.Println(headerStyle.Render(fmt.Sprintf("%s %s", "🐛", pluralize(len(issues), "open issue", "open issues"))))
+	s.WriteString(headerStyle.Render(fmt.Sprintf("%s %s", "🐛", pluralize(len(issues), "open issue", "open issues"))))
 
 	// trimmed := false
 	if *maxIssues > 0 && len(issues) > *maxIssues {
@@ -53,9 +55,10 @@ func printIssues(issues []vcs.Issue) {
 	}
 
 	for _, v := range issues {
-		printIssue(v, maxWidth)
+		s.WriteString(printIssue(v, maxWidth))
 	}
 	// if trimmed {
 	// 	fmt.Println("...")
 	// }
+	return s.String()
 }

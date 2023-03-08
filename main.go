@@ -3,12 +3,14 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/muesli/gitty/vcs"
 	"github.com/skratchdot/open-golang/open"
@@ -36,7 +38,8 @@ var (
 	theme Theme
 )
 
-func parseRepository() {
+func parseRepository() string {
+	var s strings.Builder
 	arg := "."
 	num := 0
 
@@ -59,7 +62,7 @@ func parseRepository() {
 		var err error
 		num, err = strconv.Atoi(args[0])
 		if err != nil {
-			fmt.Println(err)
+			return fmt.Sprintf("%w", err)
 			os.Exit(1)
 		}
 		args = args[1:] //nolint
@@ -84,11 +87,10 @@ func parseRepository() {
 	if num > 0 {
 		iu := client.IssueURL(owner, name, num)
 		if len(iu) == 0 {
-			fmt.Printf("Issue/PR %d not found\n", num)
-			os.Exit(1)
+			return fmt.Sprintf("Issue/PR %d not found\n", num)
 		}
 		if err := open.Start(iu); err != nil {
-			fmt.Println("URL:", iu)
+			s.WriteString(fmt.Sprintln("URL:", iu))
 		}
 		os.Exit(0)
 	}
@@ -100,7 +102,7 @@ func parseRepository() {
 
 	// fmt.Println(tooltipStyle.Render("🏠 Remote ") + headerStyle.Render(origin))
 	// fmt.Println(tooltipStyle.Render("🔖 Website ") + headerStyle.Render(u))
-	fmt.Println(tooltipStyle.Render("🏠 Repository ") + headerStyle.Render("https://"+host+"/"+owner+"/"+name))
+	s.WriteString(tooltipStyle.Render("🏠 Repository ") + headerStyle.Render("https://"+host+"/"+owner+"/"+name))
 
 	// fetch issues
 	is := make(chan []vcs.Issue)
@@ -118,7 +120,8 @@ func parseRepository() {
 	go func() {
 		p, err := client.PullRequests(owner, name)
 		if err != nil {
-			fmt.Println(err)
+			// TODO: handle or display this error in TUI
+			fmt.Sprintln(err)
 			os.Exit(1)
 		}
 		prs <- p
@@ -129,6 +132,7 @@ func parseRepository() {
 	go func() {
 		b, err := client.Branches(owner, name)
 		if err != nil {
+			// TODO: handle or display this error in TUI
 			fmt.Println(err)
 			os.Exit(1)
 		}
@@ -166,10 +170,12 @@ func parseRepository() {
 		repo <- r
 	}()
 
+	// TODO: return strings here??
 	printIssues(<-is)
 	printPullRequests(<-prs)
 	printBranches(<-stbrs, <-sts)
 	printCommits(<-repo)
+	return s.String()
 }
 
 func parseAllProjects() {
@@ -275,5 +281,10 @@ func main() {
 		os.Exit(0)
 	}
 
-	parseRepository()
+	m := NewModel()
+	// parseRepository()
+	p := tea.NewProgram(m, tea.WithAltScreen())
+	if _, err := p.Run(); err != nil {
+		log.Fatal(err)
+	}
 }
